@@ -6,8 +6,8 @@ import argparse, hashlib
 from zipfile import ZipFile
 import lznt1
 
-import ursa_decode_strings
-import ursa_decifrar_archivos
+import helpers.ursa_decode_strings
+import helpers.ursa_decifrar_archivos
 
 algos = ["md5","sha1","sha256","sha512"]
 
