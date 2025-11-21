@@ -3,10 +3,12 @@ import shutil, re
 import requests
 import argparse, hashlib
 
+from autoit_ripper import extract, AutoItVersion
+
 from zipfile import ZipFile
 import helpers.lznt1
-import helpers.ursa_decode_strings
-import helpers.ursa_decifrar_archivos
+import helpers.ursa_decode_strings as ursa_decode_strings
+import helpers.ursa_decifrar_archivos as ursa_decifrar_archivos
 
 algos = ["md5","sha1","sha256","sha512"]
 
@@ -115,6 +117,32 @@ def obtener_urls_casbaneiro(texto):
         print("Listo?")
     return res
 
+def extraer_dll_au3(filename):
+    with open(filename, "r") as f:
+        file_content = f.readlines()
+
+    res = b''
+    for l in file_content:
+        m = re.search(r'DLLBINARY\s+&=\s+"(0x)?([A-Fa-f0-9]+)"',l)
+        if m is not None:
+            res += bytes.fromhex(m.group(2))
+
+    out_file = filename + "_out.dll"
+    with open(out_file, "wb") as f:
+        f.write(res)
+
+    return out_file
+
+def decifrar_autoit(filename):
+    with open(filename, "rb") as f:
+        file_content = f.read()
+    content_list = extract(data=file_content)
+
+    out_file = filename + ".au3"
+    with open(out_file, "wb") as f:
+        f.write(content_list[0][1])
+    return out_file
+
 def obtener_archivos_finales(urls, out_dir = "."):
     file1 = os.path.join(out_dir, get_filename(urls[0]))
     file2 = os.path.join(out_dir, get_filename(urls[1]))
@@ -130,7 +158,14 @@ def obtener_archivos_finales(urls, out_dir = "."):
     with ZipFile(file2out, "r") as zObj:
         file2fin = os.path.join(out_dir, zObj.infolist()[0].filename)
         zObj.extractall(out_dir)
-    print("* El archivo con el script de AutoIt es: " + file2fin)
+        try:
+            file2au3 = decifrar_autoit(file2fin)
+            file2dll = extraer_dll_au3(file2au3)
+        except Exception as e:
+            print("ERROR: " + str(e))
+    print("* El archivo con el script de AutoIt compilado es: " + file2fin)
+    print("* El archivo con el script de AutoIt decifrado es: " + file2au3)
+    print("* El archivo con la libreria .dll que carga el malware es: " + file2dll)
 
     file3out = ursa_decifrar_archivos.decifrar(file3)
     with ZipFile(file3out, "r") as zObj:
@@ -138,7 +173,7 @@ def obtener_archivos_finales(urls, out_dir = "."):
         zObj.extractall(out_dir)
     print("* El archivo con el binario de AutoIt es: " + file3fin)
 
-    return [file1fin, file2fin, file3fin]
+    return [file1fin, file2fin, file2dll, file3fin]
 
 def buscar_nombre_decode(codigo):
     res = re.search(r'function\s+(de[a-zA-Z0-9]+_17)\(', codigo)
