@@ -4,8 +4,7 @@ import requests
 import argparse, hashlib
 
 from zipfile import ZipFile
-import lznt1
-
+import helpers.lznt1
 import helpers.ursa_decode_strings
 import helpers.ursa_decifrar_archivos
 
