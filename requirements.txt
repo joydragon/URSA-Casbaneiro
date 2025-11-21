@@ -1,0 +1,5 @@
+requests
+autoit-ripper
+pycryptodome
+debloat
+beautifulsoup4
